@@ -13,6 +13,7 @@
 
 ## 🐛 Bug Fixes
 - **Leftover Client Secret on Provider Switch** - Switching an account to Microsoft Personal (MSA) now drops a stored client secret instead of sending it with every token refresh, e.g. after switching from Microsoft 365 or when falling back to the shared default client ID.
+- **Selection After Batch Delete** - The selection is cleared when a batch delete is submitted, so deleted emails no longer stay selected and inflate the counter.
 - **Mailcow Link Retry** - A failed account link leaves the account in a pending (disabled) state and can be retried; previously a retry silently reported success while the account could not authenticate.
 - **Mailcow Instance Deletion** - Deleting an instance no longer wipes credentials and disables accounts of revoked bindings that an admin had re-configured manually.
 - **Export of Emails with Non-Standard Addresses** - Emails whose stored sender or recipient is not a valid email address (e.g. an Exchange X.500 DN such as `/O=EXCHANGELABS/.../CN=RECIPIENTS/CN=...`) are no longer skipped during EML/MBox export. The original value is preserved in an `X-MailArchiver-Original-From`/`-To`/`-Cc`/`-Bcc` header, and valid addresses next to it are kept.
