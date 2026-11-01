@@ -10,6 +10,7 @@
 - **Mailcow Provider Entry Points** - Select Mailcow during account creation or link an existing IMAP account from the edit view; unlink it again by choosing another provider.
 - **Mailcow Logging** - Provisioning, revocation and instance deletion now log state transitions; all Mailcow failures (API, IMAP verification, linking, detaching) are logged with reason and context, without ever exposing API keys, app passwords or Mailcow response bodies.
 - **Mailcow Delete Semantics** - Deleting a Mailcow instance keeps archive accounts and their state untouched; accounts of revoked bindings that were deliberately re-configured keep their working credentials.
+- **Faster Batch Deletion** - Deletion audit log entries are saved together with each batch of 1000 deleted emails instead of one database commit per email; 30,000 emails now take seconds instead of about 18 minutes.
 
 ## 🐛 Bug Fixes
 - **Leftover Client Secret on Provider Switch** - Switching an account to Microsoft Personal (MSA) now drops a stored client secret instead of sending it with every token refresh, e.g. after switching from Microsoft 365 or when falling back to the shared default client ID.
@@ -17,3 +18,4 @@
 - **Mailcow Instance Deletion** - Deleting an instance no longer wipes credentials and disables accounts of revoked bindings that an admin had re-configured manually.
 - **Export of Emails with Non-Standard Addresses** - Emails whose stored sender or recipient is not a valid email address (e.g. an Exchange X.500 DN such as `/O=EXCHANGELABS/.../CN=RECIPIENTS/CN=...`) are no longer skipped during EML/MBox export. The original value is preserved in an `X-MailArchiver-Original-From`/`-To`/`-Cc`/`-Bcc` header, and valid addresses next to it are kept.
 - **Restore Keeps Original Addresses** - Restoring to IMAP no longer replaces an unparsable sender or recipient with a placeholder address (`sender@example.com`/`recipient@example.com`); the original value is preserved in a header instead.
+- **Batch Deletion Audit Log** - Deletion audit log entries are only written when the emails are actually deleted; previously a failed batch (e.g. a locked email in the selection) left entries for emails that were still in the archive.
