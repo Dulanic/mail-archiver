@@ -160,4 +160,51 @@ public class EmailDeletionServiceTests
         }
         finally { await scope.RollbackAsync(); }
     }
+
+    [Fact]
+    public async Task DeleteJob_WhenAuditWriteFails_DeletesNothing()
+    {
+        var username = $"del-user-{Guid.NewGuid():N}";
+        await using var scope = await _fixture.CreateTransactionalContextAsync();
+        var ctx = scope.Context;
+        try
+        {
+            // Make the audit insert fail for one email. DDL is transactional in PostgreSQL,
+            // so the trigger disappears with the rollback.
+            await ctx.Database.ExecuteSqlRawAsync(@"
+                CREATE FUNCTION mail_archiver.test_reject_audit_row() RETURNS trigger AS $$
+                BEGIN
+                    IF NEW.""EmailSubject"" = 'audit-fails' THEN
+                        RAISE EXCEPTION 'audit write rejected by test';
+                    END IF;
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql;
+                CREATE TRIGGER test_reject_audit_row BEFORE INSERT ON mail_archiver.""AccessLogs""
+                    FOR EACH ROW EXECUTE FUNCTION mail_archiver.test_reject_audit_row();");
+
+            var account = await SeedAccountAsync(ctx);
+            var emails = new[]
+            {
+                NewEmail(account.Id, "first"),
+                NewEmail(account.Id, "audit-fails"),
+                NewEmail(account.Id, "third")
+            };
+            ctx.ArchivedEmails.AddRange(emails);
+            await ctx.SaveChangesAsync();
+            var ids = emails.Select(e => e.Id).ToList();
+
+            var job = await RunJobAsync(CreateService(ctx),
+                new EmailDeletionJob { EmailIds = ids, UserId = username });
+
+            // No email may be deleted without its audit row, so the whole batch fails
+            Assert.Equal(EmailDeletionJobStatus.Failed, job.Status);
+            Assert.Equal(0, job.DeletedEmails);
+
+            ctx.ChangeTracker.Clear();
+            Assert.Equal(3, await ctx.ArchivedEmails.CountAsync(e => ids.Contains(e.Id)));
+            Assert.False(await ctx.AccessLogs.AnyAsync(l => l.Username == username));
+        }
+        finally { await scope.RollbackAsync(); }
+    }
 }
