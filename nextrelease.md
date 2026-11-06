@@ -5,6 +5,7 @@
 - **Chinese Language Support** - Complete Simplified Chinese translation with automatic `zh`/`zh-Hans` browser detection. Thanks to @wolfbolin
 - **Brazilian Portuguese Language Support** - Complete Brazilian Portuguese translation, selectable in the language menu. Thanks to @mvldebian
 - **Japanese Language Support** - Complete Japanese translation, selectable in the language menu. Thanks to @ikawa-ohno
+- **Select All Matching** - Selection mode can select every email matching the current search across all pages, up to the selection limit, instead of one page at a time.
 
 ## ⚙️ Improvements
 - **Mailcow Provider Entry Points** - Select Mailcow during account creation or link an existing IMAP account from the edit view; unlink it again by choosing another provider.
@@ -14,6 +15,8 @@
 ## 🐛 Bug Fixes
 - **EML Import Failing with "interval out of range"** - Importing messages whose `Date:` header is malformed or out of range no longer aborts the job with a PostgreSQL `22008` error. The import now uses the shared date fallback chain (Date header, then the `Received` chain, then `Resent-Date`) instead of MimeKit's raw value, and every `SentDate` - written or compared - is restricted to a plausible range of 1970 to 2100. This also fixes duplicate detection against rows an earlier version wrote with a year-1 date.
 - **Leftover Client Secret on Provider Switch** - Switching an account to Microsoft Personal (MSA) now drops a stored client secret instead of sending it with every token refresh, e.g. after switching from Microsoft 365 or when falling back to the shared default client ID.
+- **Selection After Batch Delete** - The selection is cleared when a batch delete is submitted, so deleted emails no longer stay selected and inflate the counter.
+- **Stable Sort Order in the Email List** - Rows that share a sort value (same subject, sender, or day) now fall back to the email id, so paging and "Select all matching" always agree on which emails come first.
 - **Mailcow Link Retry** - A failed account link leaves the account in a pending (disabled) state and can be retried; previously a retry silently reported success while the account could not authenticate.
 - **Mailcow Instance Deletion** - Deleting an instance no longer wipes credentials and disables accounts of revoked bindings that an admin had re-configured manually.
 - **Export of Emails with Non-Standard Addresses** - Emails whose stored sender or recipient is not a valid email address (e.g. an Exchange X.500 DN such as `/O=EXCHANGELABS/.../CN=RECIPIENTS/CN=...`) are no longer skipped during EML/MBox export. The original value is preserved in an `X-MailArchiver-Original-From`/`-To`/`-Cc`/`-Bcc` header, and valid addresses next to it are kept.
